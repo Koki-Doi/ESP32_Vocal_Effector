@@ -159,13 +159,12 @@
             background-color: #ccff99;
         }
 
-        /* スマートフォン対応 */
         @media (max-width: 600px) {
             .pedal-container {
                 flex-direction: column-reverse; /* ノイズゲート、ディストーション、リバーブの順で縦に並ぶ */
                 gap: 20px;
                 align-items: center;
-                margin-top: 500px; /* 上方向のマージンを追加 */
+                margin-top: 600px;
             }
         }
     </style>
@@ -244,7 +243,7 @@
                 const deltaY = initialY - clientY;
                 rotation = Math.max(-150, Math.min(150, rotation + deltaY));
                 knob.style.transform = `rotate(${rotation}deg)`;
-                const value = Math.round((rotation + 150) / 3); // 0から100にマッピング
+                const value = Math.round((rotation + 150) / 3);
                 output.textContent = value;
                 initialY = clientY;
             }
