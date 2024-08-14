@@ -161,7 +161,7 @@
 
         @media (max-width: 600px) {
             .pedal-container {
-                flex-direction: column-reverse; /* ノイズゲート、ディストーション、リバーブの順で縦に並ぶ */
+                flex-direction: column-reverse;
                 gap: 20px;
                 align-items: center;
                 margin-top: 600px;
@@ -233,7 +233,7 @@
     </div>
 
     <script>
-        function createKnob(knobId, outputId) {
+        function createKnob(knobId, outputId, paramName) {
             const knob = document.getElementById(knobId);
             const output = document.getElementById(outputId);
             let rotation = 0;
@@ -243,9 +243,11 @@
                 const deltaY = initialY - clientY;
                 rotation = Math.max(-150, Math.min(150, rotation + deltaY));
                 knob.style.transform = `rotate(${rotation}deg)`;
-                const value = Math.round((rotation + 150) / 3);
+                const value = Math.round((rotation + 150) / 3); // 0から100にマッピング
                 output.textContent = value;
                 initialY = clientY;
+
+                sendValueToESP32(paramName, value);
             }
 
             knob.addEventListener('mousedown', function(e) {
@@ -273,13 +275,11 @@
             });
         }
 
-        createKnob('knob1', 'outputValue1');
-        createKnob('knob2', 'outputValue2');
-        createKnob('knob3', 'outputValue3');
-        createKnob('knob4', 'outputValue4');
-        createKnob('knob5', 'outputValue5');
-        createKnob('knob6', 'outputValue6');
-        createKnob('knob7', 'outputValue7');
+        function sendValueToESP32(paramName, value) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/set?" + paramName + "=" + value, true);
+            xhr.send();
+        }
 
         function createFootSwitch(footSwitchId, ledId) {
             const footSwitch = document.getElementById(footSwitchId);
@@ -287,12 +287,55 @@
 
             footSwitch.addEventListener('click', function() {
                 led.classList.toggle('on');
+                sendValueToESP32(footSwitchId, led.classList.contains('on') ? 1 : 0);
             });
         }
+
+        createKnob('knob1', 'outputValue1', 'threshold');
+        createKnob('knob2', 'outputValue2', 'level');
+        createKnob('knob3', 'outputValue3', 'gain');
+        createKnob('knob4', 'outputValue4', 'toneValue');
+        createKnob('knob5', 'outputValue5', 'decay');
+        createKnob('knob6', 'outputValue6', 'mix');
+        createKnob('knob7', 'outputValue7', 'reverbTone');
 
         createFootSwitch('footSwitch1', 'led1');
         createFootSwitch('footSwitch2', 'led2');
         createFootSwitch('footSwitch3', 'led3');
-    </script>
+
+        window.onload = function() {
+            fetch('/getSettings')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('outputValue1').textContent = data.threshold;
+                    document.getElementById('outputValue2').textContent = data.level;
+                    document.getElementById('outputValue3').textContent = data.gain;
+                    document.getElementById('outputValue4').textContent = data.toneValue;
+                    document.getElementById('outputValue5').textContent = data.decay;
+                    document.getElementById('outputValue6').textContent = data.mix;
+                    document.getElementById('outputValue7').textContent = data.reverbTone;
+
+                    // 各ノブの位置を設定
+                    document.getElementById('knob1').style.transform = `rotate(${data.knobPositions[0]}deg)`;
+                    document.getElementById('knob2').style.transform = `rotate(${data.knobPositions[1]}deg)`;
+                    document.getElementById('knob3').style.transform = `rotate(${data.knobPositions[2]}deg)`;
+                    document.getElementById('knob4').style.transform = `rotate(${data.knobPositions[3]}deg)`;
+                    document.getElementById('knob5').style.transform = `rotate(${data.knobPositions[4]}deg)`;
+                    document.getElementById('knob6').style.transform = `rotate(${data.knobPositions[5]}deg)`;
+                    document.getElementById('knob7').style.transform = `rotate(${data.knobPositions[6]}deg)`;
+
+                    // フットスイッチの状態を反映
+                    if (data.noiseGateOn) {
+                        document.getElementById('led1').classList.add('on');
+                    }
+                    if (data.distortionOn) {
+                        document.getElementById('led2').classList.add('on');
+                    }
+                    if (data.reverbOn) {
+                        document.getElementById('led3').classList.add('on');
+                    }
+                });
+        };
+    </script>    
 </body>
 </html>
